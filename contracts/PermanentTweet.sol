@@ -8,7 +8,7 @@ contract PermanentTweet {
         uint timeOfPosting;
     }
 
-    mapping (address => Tweet) public tweets;
+    mapping (uint => Tweet) public tweets;
 
     uint public tweetCount = 0;
 
@@ -27,7 +27,7 @@ contract PermanentTweet {
     function tweet(string memory _content) public {
         if (bytes(_content).length <= 280) {
             tweetCount++;
-            tweets[tx.origin] = Tweet(
+            tweets[tweetCount] = Tweet(
                 tx.origin,
                 tweetCount,
                 _content,
