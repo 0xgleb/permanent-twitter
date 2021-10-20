@@ -1,8 +1,13 @@
 pragma solidity ^0.5.16;
 
-contract PermanentTweet {
+contract TweetContract {
+    address public userAddress;
+
+    constructor() public {
+        userAddress = tx.origin;
+    }
+
     struct Tweet {
-        address userAddress;
         uint tweetId;
         string content;
         uint timeOfPosting;
@@ -28,12 +33,11 @@ contract PermanentTweet {
         if (bytes(_content).length <= 280) {
             tweetCount++;
             tweets[tweetCount] = Tweet(
-                tx.origin,
                 tweetCount,
                 _content,
                 block.timestamp
             );
-            emit TweetPosted(tx.origin, tweetCount, _content, block.timestamp);
+            emit TweetPosted(userAddress, tweetCount, _content, block.timestamp);
         } else {
             revert("Tweet is too long");
         }

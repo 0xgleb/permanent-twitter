@@ -1,39 +1,42 @@
 pragma solidity ^0.5.16;
 
-import "./PermanentTweet.sol";
+import "./Tweet.sol";
 
-contract PermanentTwitter {
+contract Twitter {
     struct User {
         address userAddress;
         uint id;
         string name;
         string bio;
-        bool exists;
     }
 
-    mapping (address => User) public users;
+    mapping (uint => User) public users;
+
+    mapping (address => uint) internal userIds;
 
     uint public userCount = 0;
 
-    mapping (uint => PermanentTweet) public tweets;
+    mapping (uint => TweetContract) public tweets;
 
     event UserCreated(address userAddress, uint userId, string name);
 
     function createUser(string memory _name, string memory _bio) public {
-        if (users[msg.sender].exists) {
+        address userAddress = tx.origin;
+
+        if (userIds[userAddress] > 0) {
             revert("User already exists");
         } else {
             userCount++;
-            users[msg.sender] = User(msg.sender, userCount, _name, _bio, true);
-            emit UserCreated(msg.sender, userCount, _name);
+            userIds[userAddress] = userCount;
+            users[userCount] = User(userAddress, userCount, _name, _bio);
+            emit UserCreated(userAddress, userCount, _name);
+            tweets[userCount] = TweetContract(userAddress);
         }
     }
 
     function tweet(string memory _content) public {
-        if (users[msg.sender].exists) {
-            User memory user = users[msg.sender];
-            tweets[user.id] = new PermanentTweet();
-            tweets[user.id].tweet(_content);
+        if (userIds[tx.origin] > 0) {
+            tweets[userIds[tx.origin]].tweet(_content);
         } else {
             revert("User doesn't exist");
         }
