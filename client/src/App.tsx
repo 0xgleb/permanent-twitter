@@ -9,22 +9,19 @@ import getWeb3 from "./getWeb3";
 import "./App.css";
 import { convertTypeAcquisitionFromJson } from "typescript";
 
+import CreateUser from './CreateUser'
+
 type State = {
   storageValue: number,
   web3: any | null,
   contract: Contract.Contract | null,
   accounts: [any] | null
-  newUser: NewUser,
-  users: User[]
-}
-
-type NewUser = {
-  name: string,
-  bio: string
+  users: User[],
+  error: string | null
 }
 
 type User = {
-  address: string,
+  userAddress: string,
   name: string,
   bio: string
 }
@@ -36,10 +33,7 @@ class App extends Component {
     accounts: null,
     contract: null,
     users: [],
-    newUser: {
-      name: "",
-      bio: ""
-    }
+    error: null
   };
 
   componentDidMount = async () => {
@@ -74,41 +68,24 @@ class App extends Component {
     const { accounts, contract } = this.state;
 
     if(accounts && contract) {
-      // // Stores a given value, 5 by default.
-      const userCount: number = await contract.methods.userCount().call();
+      try {
+        // // Stores a given value, 5 by default.
+        const userCount: number = await contract.methods.userCount().call();
 
-      let users: User[] = this.state.users;
+        let users: User[] = this.state.users;
 
-      for(let i = 1; i <= userCount; i++) {
-        const user: User = await contract.methods.users(i).call();
-        users.push(user);
+        for(let i = this.state.users.length + 1; i <= userCount; i++) {
+          const user: User = await contract.methods.users(i).call();
+          users.push(user);
+        }
+
+        this.setState({ users });
+      } catch(error) {
+        console.log(error);
+        this.setState({ 
+          error: "Calling the contract failed. Are you on the right network? Check the console to see the error" 
+        });
       }
-
-      this.setState({ users });
-    }
-  };
-
-  onNameChange = (event: React.FormEvent<HTMLInputElement>) => {
-    let newUser: NewUser = this.state.newUser;
-    newUser.name = (event.target as HTMLInputElement).value;
-    this.setState({ newUser });
-  }
-
-  onBioChange = (event: React.FormEvent<HTMLTextAreaElement>) => {
-    let newUser: NewUser = this.state.newUser;
-    newUser.bio = (event.target as HTMLInputElement).value;
-    this.setState({ newUser });
-  };
-
-  createUser = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const { accounts, contract, newUser } = this.state;
-
-    if (contract && accounts) {
-      await contract.methods.createUser(newUser.name, newUser.bio).send({
-        from: accounts[0] 
-      });
     }
   };
 
@@ -116,19 +93,26 @@ class App extends Component {
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
+
+    if(this.state.error) {
+      return <h1>Error: {this.state.error}</h1>;
+    }
+
+    if(!this.state.contract) {
+      return <h1>Couldn't load the contract!</h1>
+    }
+
+    if(!this.state.accounts) {
+      return <h1>Couldn't load accounts!</h1>
+    }
+
     return (
       <div className="App">
         <h1>Permanent Twitter</h1>
-        <form onSubmit={this.createUser}>
-          <input type="text" value={this.state.newUser.name} onChange={this.onNameChange} />
-          <br />
-          <textarea name="bio" id="new-user-bio" cols={30} rows={10} 
-            value={this.state.newUser.bio} onChange={this.onBioChange}>
-          </textarea>
-        </form>
+        <CreateUser contract={this.state.contract} accounts={this.state.accounts} />
         <ul>
           {this.state.users.map(user => 
-            <li id={user.address}>{user.name}</li>
+            <li key={user.userAddress}>{user.name}</li>
           )}
         </ul>
       </div>
